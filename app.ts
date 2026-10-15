@@ -126,6 +126,21 @@ app.post("/api/orders/seed", (req: Request, res: Response) => {
   res.json({ success: true, message: `จำลองออเดอร์สำเร็จ ${orders.length} รายการ`, data: orders });
 });
 
+// เพิ่มออเดอร์ใหม่แบบระบุลูกค้าและจำนวนกล่อง
+app.post("/api/orders", (req: Request, res: Response) => {
+  const { customer_id, quantity } = req.body;
+  const newOrderId = orders.length > 0 ? Math.max(...orders.map(o => o.order_id)) + 1 : 1;
+  const newOrder = {
+    order_id: newOrderId,
+    customer_id: Number(customer_id),
+    quantity: Number(quantity) || 1,
+    status: "PENDING",
+    order_date: new Date()
+  };
+  orders.push(newOrder);
+  res.status(201).json({ success: true, message: "เพิ่มออเดอร์สำเร็จ", data: newOrder });
+});
+
 // เพิ่ม / แก้ไข จำนวนกล่องในออเดอร์
 app.put("/api/orders/:order_id", (req: Request, res: Response) => {
   const { order_id } = req.params;

@@ -162,6 +162,20 @@ app.delete("/api/orders/clear", (req: Request, res: Response) => {
   res.json({ success: true, message: "ล้างรายการสั่งซื้อทั้งหมดเรียบร้อยแล้ว" });
 });
 
+// ลบออเดอร์รายรายการตาม order_id
+app.delete("/api/orders/:order_id", (req: Request, res: Response) => {
+  const { order_id } = req.params;
+  const idNum = Number(order_id);
+  const index = orders.findIndex(o => o.order_id === idNum);
+
+  if (index !== -1) {
+    orders.splice(index, 1);
+    res.json({ success: true, message: "ลบออเดอร์สำเร็จ" });
+  } else {
+    res.status(404).json({ success: false, message: "ไม่พบออเดอร์นี้" });
+  }
+});
+
 // 2.3 แสดงรายการสั่งซื้อทั้งหมดในระยะ 2 กิโลเมตรจากพิกัดที่กำหนด
 app.get("/api/orders/nearby-2km", (req: Request, res: Response) => {
   res.json({ success: true, data: orders });

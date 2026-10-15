@@ -1,6 +1,18 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 
 export const app = express();
+
+// Middleware จัดการ CORS สำหรับทุก Request
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json());
 
 // --- โครงสร้างข้อมูลจำลอง (In-Memory Database) ที่ถอดแบบมาจาก ER Diagram ---
@@ -29,8 +41,9 @@ app.get("/api/customers", (req: Request, res: Response) => {
 
 // เพิ่มข้อมูลลูกค้า
 app.post("/api/customers", (req: Request, res: Response) => {
+  const newId = customers.length > 0 ? Math.max(...customers.map(c => c.customer_id)) + 1 : 1;
   const newCustomer = {
-    customer_id: customers.length + 1,
+    customer_id: newId,
     name: req.body.name,
     phone: req.body.phone,
     latitude: req.body.latitude,
@@ -38,6 +51,39 @@ app.post("/api/customers", (req: Request, res: Response) => {
   };
   customers.push(newCustomer);
   res.status(201).json({ success: true, message: "เพิ่มข้อมูลลูกค้าสำเร็จ", data: newCustomer });
+});
+
+// แก้ไขข้อมูลลูกค้า
+app.put("/api/customers/:customer_id", (req: Request, res: Response) => {
+  const { customer_id } = req.params;
+  const { name, phone, latitude, longitude } = req.body;
+  const customer = customers.find(c => c.customer_id == Number(customer_id));
+
+  if (customer) {
+    if (name !== undefined) customer.name = name;
+    if (phone !== undefined) customer.phone = phone;
+    if (latitude !== undefined) customer.latitude = latitude;
+    if (longitude !== undefined) customer.longitude = longitude;
+    res.json({ success: true, message: "แก้ไขข้อมูลลูกค้าสำเร็จ", data: customer });
+  } else {
+    res.status(404).json({ success: false, message: "ไม่พบข้อมูลลูกค้านี้" });
+  }
+});
+
+// ลบข้อมูลลูกค้า
+app.delete("/api/customers/:customer_id", (req: Request, res: Response) => {
+  const { customer_id } = req.params;
+  const idNum = Number(customer_id);
+  const index = customers.findIndex(c => c.customer_id === idNum);
+
+  if (index !== -1) {
+    customers.splice(index, 1);
+    // ลบออเดอร์ของลูกค้ารายนี้ด้วย
+    orders = orders.filter(o => o.customer_id !== idNum);
+    res.json({ success: true, message: "ลบข้อมูลลูกค้าสำเร็จ" });
+  } else {
+    res.status(404).json({ success: false, message: "ไม่พบข้อมูลลูกค้านี้" });
+  }
 });
 
 // 1.2 ค้นหาจากส่วนหนึ่งของชื่อ หรือนามสกุล
